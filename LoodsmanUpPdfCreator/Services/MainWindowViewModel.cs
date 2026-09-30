@@ -102,18 +102,21 @@ namespace LoodsmanUpPdfCreator.Services
         }
 
         //Кнопки
-        public ICommand PreviousButtonCommand { get; }
+        public AsyncRelayCommand PreviousButtonCommand { get; }
         private async Task PreviousButtonClick()
         {
-
 
             //для каждого выделенного объекта без ошибок
             foreach (LoodsmanObject loodsmanObject in selectedLoodsmanObjects.Where(_ => _.ErrorList.Count == 0))
             {
                 //Сначала нужно понять что делать с проектом УП (Создать версию или изменить существующий)
-                selectedLoodsmanObjects.FirstOrDefault(_ => _.Id == loodsmanObject.Id).OperationStatus = OperationStatus.Success;
-                Thread.Sleep(2000);
+                
+                
+                loodsmanObject.OperationStatus = await Task.Run(() => MainMethod(loodsmanObject));                       
+
+
                 continue;
+
 
                 //Сценарий изменения существующего проекта УП включается если последнии версия Проекта УП имеет связь с выбранной деталью и находится в состоянии проектирования
                 LoodsmanObject lastProject = _loodsmanService.GetLastVersion("Проект УП", loodsmanObject.Name);
@@ -214,6 +217,114 @@ namespace LoodsmanUpPdfCreator.Services
 
 
         }
+
+        public Task<OperationStatus> MainMethod(LoodsmanObject loodsmanObject)
+        {
+
+            Thread.Sleep(2000);
+
+            Task<OperationStatus> resultTask;
+            
+            return Task.FromResult(OperationStatus.Success);
+
+            //Сценарий изменения существующего проекта УП включается если последнии версия Проекта УП имеет связь с выбранной деталью и находится в состоянии проектирования
+            LoodsmanObject lastProject = _loodsmanService.GetLastVersion("Проект УП", loodsmanObject.Name);
+
+            if (lastProject == null)
+            {
+                //Сценарий создания нового проекта УП и архива проекта УП
+                string NewCheckOut = _loodsmanService.CreateCheckOut(loodsmanObject);
+                _loodsmanService.AddToCheckOut(loodsmanObject, NewCheckOut);
+                LoodsmanObject newProject = _loodsmanService.CreateNewProject(loodsmanObject);
+
+                _loodsmanService.FillAttributeUP(loodsmanObject, newProject);
+                LoodsmanObject lastArchive = _loodsmanService.GetLastVersion("Архив проекта УП", $"{loodsmanObject.Name} КЭ00");
+
+                if (lastArchive != null && lastArchive.State == "Утвержден")
+                {
+                    LoodsmanObject newArchive = _loodsmanService.CreateArchivetVersion(newProject);
+                    _loodsmanService.FillAttributeArchiveUP(loodsmanObject, newArchive);
+
+                }
+                if (lastArchive == null)
+                {
+                    LoodsmanObject newArchive = _loodsmanService.CreateNewArchive(newProject);
+                    _loodsmanService.FillAttributeArchiveUP(loodsmanObject, newArchive);
+
+                }
+                _loodsmanService.CheckIn(NewCheckOut);
+                //loodsmanObject.OperationStatus = OperationStatus.Success;
+
+                resultTask = Task.FromResult(OperationStatus.Success);
+                return resultTask;
+            }
+
+            //Сценарий создания версии проекта УП
+            if (lastProject.State == "Утвержден")
+            {
+                string NewCheckOut = _loodsmanService.CreateCheckOut(loodsmanObject);
+                _loodsmanService.AddToCheckOut(loodsmanObject, NewCheckOut);
+                LoodsmanObject newProject = _loodsmanService.CreateProjectVersion(loodsmanObject);
+                _loodsmanService.FillAttributeUP(loodsmanObject, newProject);
+                LoodsmanObject lastArchive = _loodsmanService.GetLastVersion("Архив проекта УП", $"{loodsmanObject.Name} КЭ00");
+
+                if (lastArchive != null && lastArchive.State == "Утвержден")
+                {
+                    LoodsmanObject newArchive = _loodsmanService.CreateArchivetVersion(newProject);
+                    _loodsmanService.FillAttributeArchiveUP(loodsmanObject, newArchive);
+
+                }
+                if (lastArchive == null)
+                {
+                    LoodsmanObject newArchive = _loodsmanService.CreateNewArchive(newProject);
+                    _loodsmanService.FillAttributeArchiveUP(loodsmanObject, newArchive);
+
+                }
+
+                _loodsmanService.CheckIn(NewCheckOut);
+                //loodsmanObject.OperationStatus = OperationStatus.Success;
+                resultTask = Task.FromResult(OperationStatus.Success);
+                return resultTask;
+            }
+
+
+            //Сценарий обновления проекта УП
+            LoodsmanObject lastprojectInSelectedLO = loodsmanObject.Projects.FirstOrDefault(_ => _.Id == lastProject.Id);
+
+            if (lastprojectInSelectedLO != null && (lastProject.State == "Проектирование"))
+            {
+                string NewCheckOut = _loodsmanService.CreateCheckOut(loodsmanObject);
+                _loodsmanService.AddToCheckOut(loodsmanObject, NewCheckOut);
+                _loodsmanService.AddToCheckOut(lastProject, NewCheckOut);
+                _loodsmanService.FillAttributeUP(loodsmanObject, lastProject);
+
+                LoodsmanObject lastArchive = _loodsmanService.GetLastVersion("Архив проекта УП", $"{loodsmanObject.Name} КЭ00");
+
+                if (lastArchive != null && lastArchive.State == "Утвержден")
+                {
+                    LoodsmanObject newArchive = _loodsmanService.CreateArchivetVersion(lastProject);
+                    _loodsmanService.FillAttributeArchiveUP(loodsmanObject, newArchive);
+
+                }
+                if (lastprojectInSelectedLO.Archives.FirstOrDefault(_ => _.Id == lastArchive.Id) != null && lastArchive.State == "Проектирование")
+                {
+                    _loodsmanService.AddToCheckOut(lastArchive, NewCheckOut);
+                    _loodsmanService.FillAttributeArchiveUP(loodsmanObject, lastArchive);
+                }
+                if (lastArchive == null)
+                {
+                    LoodsmanObject newArchive = _loodsmanService.CreateNewArchive(lastProject);
+                    _loodsmanService.FillAttributeArchiveUP(loodsmanObject, newArchive);
+
+                }
+
+                _loodsmanService.CheckIn(NewCheckOut);
+                //loodsmanObject.OperationStatus = OperationStatus.Success;
+                resultTask = Task.FromResult(OperationStatus.Success);
+                return resultTask;
+            }
+            return Task.FromResult(OperationStatus.Unsuccess);
+        }
         public ICommand NextButtonCommand { get; }
         private void NextButtonClick(object parameter)
         {
@@ -260,7 +371,7 @@ namespace LoodsmanUpPdfCreator.Services
 
             //PreviousButtonCommand => new RelayCommand(async ()=> await PreviousButtonClick, CanBeClicked);
             PreviousButtonCommand = new AsyncRelayCommand(PreviousButtonClick, null);
-            NextButtonCommand = new RelayCommand(NextButtonClick, CanBeClicked);
+            NextButtonCommand = new RelayCommand(NextButtonClick);
 
             FillSelectedOnjectsSource();
 

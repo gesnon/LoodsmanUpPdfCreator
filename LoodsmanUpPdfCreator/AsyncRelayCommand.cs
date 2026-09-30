@@ -7,7 +7,7 @@ using System.Windows.Input;
 
 namespace LoodsmanUpPdfCreator
 {
-    public class AsyncRelayCommand: ICommand
+    public class AsyncRelayCommand : ICommand
     {
         private readonly Func<Task> _execute;
         private readonly Func<bool> _canExecute;
@@ -19,33 +19,36 @@ namespace LoodsmanUpPdfCreator
             _canExecute = canExecute;
         }
 
-        public event EventHandler CanExecuteChanged
-        {
-            add => CommandManager.RequerySuggested += value;
-            remove => CommandManager.RequerySuggested -= value;
-        }
-
         public bool CanExecute(object parameter)
         {
-            return !_isExecuting && (_canExecute?.Invoke() ?? true);
+            return !_isExecuting && (_canExecute == null || _canExecute());
         }
 
         public async void Execute(object parameter)
         {
             if (!CanExecute(parameter)) return;
 
-            _isExecuting = true;
-            CommandManager.InvalidateRequerySuggested();
-
+            IsExecuting = true;
             try
             {
                 await _execute();
             }
             finally
             {
-                _isExecuting = false;
-                CommandManager.InvalidateRequerySuggested();
+                IsExecuting = false;
             }
         }
+
+        public bool IsExecuting
+        {
+            get => _isExecuting;
+            private set
+            {
+                _isExecuting = value;
+                CanExecuteChanged?.Invoke(this, EventArgs.Empty);
+            }
+        }
+
+        public event EventHandler CanExecuteChanged;
     }
 }
