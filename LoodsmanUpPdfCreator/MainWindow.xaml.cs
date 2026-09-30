@@ -25,16 +25,17 @@ namespace LoodsmanUpPdfCreator
     {
         private readonly MainWindowViewModel _viewModel;
 
-        //public MainWindow(INetPluginCall client, IReadOnlyList<string> selectedObjectIds)
-        //{
-        //    InitializeComponent();
-        //    _viewModel = new MainWindowViewModel(client, selectedObjectIds);
-        //    _treeRefresh = new ClientTreeRefreshNotifier((IntPtr)client.PluginCall.ClientHandle);
-        //}
         public MainWindow(INetPluginCall client, ObservableCollection<string> selectedObjectIds)
         {
             InitializeComponent();
-            _viewModel = new MainWindowViewModel(client, selectedObjectIds);
+            //_viewModel = new MainWindowViewModel(client, selectedObjectIds);
+            DataContext = new MainWindowViewModel(client, selectedObjectIds);
+            
+            
+        }
+
+        private void selectedLoodsmanObjectListView_SelectionChanged(object sender, SelectionChangedEventArgs e)
+        {
 
         }
     }

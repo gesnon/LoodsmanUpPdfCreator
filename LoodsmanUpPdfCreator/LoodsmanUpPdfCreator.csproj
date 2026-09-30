@@ -144,7 +144,11 @@
     <Reference Include="PresentationFramework" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="AsyncRelayCommand.cs" />
+    <Compile Include="Domain\LoodsmanFile.cs" />
     <Compile Include="Domain\LoodsmanObject.cs" />
+    <Compile Include="Domain\Operation.cs" />
+    <Compile Include="Domain\OperationStatus.cs" />
     <Compile Include="Infrastructure\Loodsman\LoodsmanPlugin.cs" />
     <Compile Include="RelayCommand.cs" />
     <Compile Include="Services\LoodsmanService.cs" />
@@ -198,4 +202,11 @@
     <Error Condition="!Exists('..\packages\CommunityToolkit.Mvvm.8.4.2\build\CommunityToolkit.Mvvm.targets')" Text="$([System.String]::Format('$(ErrorText)', '..\packages\CommunityToolkit.Mvvm.8.4.2\build\CommunityToolkit.Mvvm.targets'))" />
   </Target>
   <Import Project="..\packages\CommunityToolkit.Mvvm.8.4.2\build\CommunityToolkit.Mvvm.targets" Condition="Exists('..\packages\CommunityToolkit.Mvvm.8.4.2\build\CommunityToolkit.Mvvm.targets')" />
+  <PropertyGroup>
+    <PostBuildEvent>taskkill /f /im Loodsman.exe 2&gt;NUL 
+
+xcopy "$(TargetDir)*.*" "C:\ProgramData\ASCON\LOODSMAN\PluginStore\LoodsmanUpPdfCreator" /E /Y /R
+
+powershell -Command "Start-Process 'C:\Program Files (x86)\ASCON\Loodsman\Client\Loodsman.exe'"</PostBuildEvent>
+  </PropertyGroup>
 </Project>
