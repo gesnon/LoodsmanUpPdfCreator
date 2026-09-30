@@ -110,9 +110,9 @@ namespace LoodsmanUpPdfCreator.Services
             foreach (LoodsmanObject loodsmanObject in selectedLoodsmanObjects.Where(_ => _.ErrorList.Count == 0))
             {
                 //Сначала нужно понять что делать с проектом УП (Создать версию или изменить существующий)
-                
-                
-                loodsmanObject.OperationStatus = await Task.Run(() => MainMethod(loodsmanObject));                       
+
+
+                loodsmanObject.OperationStatus = await Task.Run(() => MainMethod(loodsmanObject));
 
 
                 continue;
@@ -218,14 +218,16 @@ namespace LoodsmanUpPdfCreator.Services
 
         }
 
-        public Task<OperationStatus> MainMethod(LoodsmanObject loodsmanObject)
+        public async Task<OperationStatus> MainMethod(LoodsmanObject loodsmanObject)
         {
 
-            Thread.Sleep(2000);
+            //Thread.Sleep(2000);
 
-            Task<OperationStatus> resultTask;
-            
-            return Task.FromResult(OperationStatus.Success);
+            OperationStatus resultTask = OperationStatus.Unsuccess;
+
+            //return Task.FromResult(OperationStatus.Success);
+
+
 
             //Сценарий изменения существующего проекта УП включается если последнии версия Проекта УП имеет связь с выбранной деталью и находится в состоянии проектирования
             LoodsmanObject lastProject = _loodsmanService.GetLastVersion("Проект УП", loodsmanObject.Name);
@@ -255,8 +257,8 @@ namespace LoodsmanUpPdfCreator.Services
                 _loodsmanService.CheckIn(NewCheckOut);
                 //loodsmanObject.OperationStatus = OperationStatus.Success;
 
-                resultTask = Task.FromResult(OperationStatus.Success);
-                return resultTask;
+                resultTask = OperationStatus.Success;
+                //return resultTask;
             }
 
             //Сценарий создания версии проекта УП
@@ -283,8 +285,8 @@ namespace LoodsmanUpPdfCreator.Services
 
                 _loodsmanService.CheckIn(NewCheckOut);
                 //loodsmanObject.OperationStatus = OperationStatus.Success;
-                resultTask = Task.FromResult(OperationStatus.Success);
-                return resultTask;
+                resultTask = OperationStatus.Success;
+                //return resultTask;
             }
 
 
@@ -320,10 +322,12 @@ namespace LoodsmanUpPdfCreator.Services
 
                 _loodsmanService.CheckIn(NewCheckOut);
                 //loodsmanObject.OperationStatus = OperationStatus.Success;
-                resultTask = Task.FromResult(OperationStatus.Success);
-                return resultTask;
-            }
-            return Task.FromResult(OperationStatus.Unsuccess);
+                resultTask = OperationStatus.Success;
+                // return resultTask;
+            }           
+
+
+            return resultTask;
         }
         public ICommand NextButtonCommand { get; }
         private void NextButtonClick(object parameter)
